@@ -6,7 +6,7 @@ on:
     - main
 jobs:
   build-and-deploy:
-    run-on: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v1
@@ -16,9 +16,9 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCES_KEY }}
-        aws-regions: us-east-1
+        aws-regions: ap-south-1
 
     - name: Deploy static site to S3 bucket
-      run: aws s3 sync . s3://tws-github-actions-demo --delete
+      run: aws s3 sync . s3://rd-portfolio  --delete
     
    
