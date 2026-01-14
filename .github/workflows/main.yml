@@ -20,8 +20,37 @@ jobs:
           path: .
           fail: true
 
-  build-and-deploy:
+  dependency-check:
+    name: OWASP Dependency Check
     needs: secret-scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: "portfolio-website"
+          path: "."
+          format: "SARIF"
+          out: "dependency-check-report"
+
+      - name: Upload Dependency-Check Report (Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: dependency-check-report/
+
+      - name: Upload SARIF Report to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: dependency-check-report/dependency-check-report.sarif
+
+  build-and-deploy:
+    name: Deploy to AWS S3
+    needs: dependency-check
     runs-on: ubuntu-latest
 
     steps:
