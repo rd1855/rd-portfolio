@@ -8,6 +8,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   secret-scan:
@@ -22,7 +25,7 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: .
-          extra_args: "--exit-code 1"
+          extra_args: "--exit-code 1" 
 
   dependency-check:
     name: OWASP Dependency Check
@@ -58,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
@@ -69,4 +72,4 @@ jobs:
           aws-region: ap-south-1
 
       - name: Deploy static site to S3 bucket
-        run: aws s3 sync . s3://rd-portfolio --delete
+        run: aws s3 sync . s3://rd-portfolio --delete --exclude ".git/*" --exclude ".github/*"
