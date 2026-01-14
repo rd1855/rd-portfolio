@@ -3,22 +3,37 @@ name: Portfolio Deployment
 on:
   push:
     branches:
-    - main
+      - main
+
 jobs:
-  build-and-deploy:
+  secret-scan:
+    name: TruffleHog Secret Scan
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v1
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-south-1
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@v3
+        with:
+          path: .
+          fail: true
 
-    - name: Deploy static site to S3 bucket
-      run: aws s3 sync . s3://rd-portfolio  --delete
-    
-   
+  build-and-deploy:
+    needs: secret-scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Deploy static site to S3 bucket
+        run: aws s3 sync . s3://rd-portfolio --delete
