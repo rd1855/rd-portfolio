@@ -1,16 +1,22 @@
-name: Portfolio Deployment
+name: Portfolio CI/CD Pipeline
 
 permissions:
   contents: read
   security-events: write
-  
+
 on:
   push:
     branches:
+      - develop
       - main
   pull_request:
     branches:
+      - develop
       - main
+
+concurrency:
+  group: portfolio-deploy
+  cancel-in-progress: true
 
 jobs:
   secret-scan:
@@ -44,21 +50,26 @@ jobs:
           format: "SARIF"
           out: "dependency-check-report"
 
-      - name: Upload Dependency-Check Report (Artifact)
+      - name: Upload Dependency-Check Report
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
           path: dependency-check-report/
 
-      - name: Upload SARIF Report to GitHub Security
+      - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: dependency-check-report/dependency-check-report.sarif
 
   build-and-deploy:
-    name: Deploy to AWS S3
+    name: Deploy to AWS S3 (Production)
     needs: dependency-check
     runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    environment:
+      name: production
 
     steps:
       - name: Checkout code
@@ -71,5 +82,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      - name: Deploy static site to S3 bucket
-        run: aws s3 sync . s3://rd-portfolio --delete --exclude ".git/*" --exclude ".github/*"
+      - name: Deploy static site to S3
+        run: |
+          aws s3 sync . s3://rd-portfolio \
+            --delete \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "node_modules/*"
