@@ -22,9 +22,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Run TruffleHog
-        uses: trufflesecurity/trufflehog@v3
+        uses: trufflesecurity/trufflehog@main
         with:
           directory: .
           only-verified: true
@@ -34,9 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: secret-trufflehog
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Run Gitleaks
         uses: zricethezav/gitleaks-action@v2
         with:
@@ -47,15 +44,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: secret-gitleaks
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-
       - name: Run OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@v3
         with:
@@ -63,7 +57,6 @@ jobs:
           path: "."
           format: "SARIF"
           out: "dependency-check-report"
-
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v4
         with:
@@ -74,33 +67,21 @@ jobs:
     runs-on: ubuntu-latest
     needs: dependency-owasp
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run npm audit
-        run: npm audit --audit-level=high
+      - run: npm ci
+      - run: npm audit --audit-level=high
 
   dependency-snyk:
     name: Snyk Vulnerability Scan
     runs-on: ubuntu-latest
     needs: dependency-npmaudit
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run Snyk
-        run: npx snyk test --severity-threshold=high
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npx snyk test --severity-threshold=high
 
   eslint:
     name: ESLint
@@ -197,7 +178,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: tfsec ./infra || true
-      
+
   pr-summary:
     name: PR Summary
     runs-on: ubuntu-latest
