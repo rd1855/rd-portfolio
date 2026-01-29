@@ -1,0 +1,70 @@
+name: pr-security-pipeline
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-security:
+    name: PR Security and Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks Secret Scan
+        timeout-minutes: 5
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --source . --log-opts="--all"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Semgrep
+        timeout-minutes: 5
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install semgrep
+
+      - name: Run Semgrep and generate SARIF
+        timeout-minutes: 10
+        run: |
+          semgrep scan \
+            --config p/javascript \
+            --sarif \
+            --output semgrep.sarif
+
+      - name: Upload SARIF report
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep.sarif
+
+      - name: Run OWASP Dependency Check
+        timeout-minutes: 15
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: "PR-Dependency-Scan"
+          path: "."
+          format: "HTML"
+          out: "dependency-check-report"
+          args: >
+            --enableExperimental
+            --failOnCVSS 7
+
+      - name: Upload Dependency Check Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: dependency-check-report
